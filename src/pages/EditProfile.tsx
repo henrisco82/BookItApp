@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { ArrowLeft, Save, Trash2, User, AlertTriangle, Lock } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, User, AlertTriangle, Lock, Camera } from 'lucide-react'
 
 export function EditProfile() {
     const navigate = useNavigate()
-    const { user, updateProfile, isLoading } = useCurrentUser()
+    const { user, updateProfile, isLoading, imageUrl, setProfileImage } = useCurrentUser()
     const { signOut, changePassword } = useAuth()
 
     const [formData, setFormData] = useState({
@@ -25,6 +25,8 @@ export function EditProfile() {
     })
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+
+    const [isUploading, setIsUploading] = useState(false)
 
     useEffect(() => {
         if (user) {
@@ -41,6 +43,27 @@ export function EditProfile() {
             ...prev,
             [name]: value
         }))
+    }
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB')
+            return
+        }
+
+        setIsUploading(true)
+        try {
+            await setProfileImage(file)
+            alert('Profile picture updated successfully')
+        } catch (error) {
+            console.error('Error uploading image:', error)
+            alert('Failed to upload profile picture')
+        } finally {
+            setIsUploading(false)
+        }
     }
 
     const handlePasswordChange = async () => {
@@ -152,6 +175,46 @@ export function EditProfile() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {/* Profile Image */}
+                            <div className="flex flex-col items-center justify-center space-y-4 mb-6">
+                                <div className="relative group">
+                                    <div className="h-24 w-24 rounded-full overflow-hidden border-2 border-primary/20">
+                                        {imageUrl ? (
+                                            <img
+                                                src={imageUrl}
+                                                alt="Profile"
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="h-full w-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+                                                {user?.displayName?.charAt(0).toUpperCase() || 'U'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label
+                                        htmlFor="profile-image-upload"
+                                        className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white"
+                                    >
+                                        {isUploading ? (
+                                            <div className="animate-spin h-6 w-6 border-2 border-white/30 border-t-white rounded-full" />
+                                        ) : (
+                                            <Camera className="h-8 w-8" />
+                                        )}
+                                    </label>
+                                    <input
+                                        type="file"
+                                        id="profile-image-upload"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImageUpload}
+                                        disabled={isUploading}
+                                    />
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Click to upload a new picture
+                                </p>
+                            </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="displayName">Display Name</Label>
                                 <Input

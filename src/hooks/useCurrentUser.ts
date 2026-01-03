@@ -12,11 +12,13 @@ import type { User, CreateUserData } from '@/types'
 
 interface UseCurrentUserReturn {
     user: User | null
+    imageUrl: string | null
     isLoading: boolean
     error: Error | null
     needsProfileSetup: boolean
     createProfile: (data: Omit<CreateUserData, 'email'>) => Promise<void>
     updateProfile: (data: Partial<User>) => Promise<void>
+    setProfileImage: (file: File) => Promise<void>
 }
 
 export function useCurrentUser(): UseCurrentUserReturn {
@@ -122,13 +124,32 @@ export function useCurrentUser(): UseCurrentUserReturn {
         [clerkUser]
     )
 
+    // Upload profile image to Clerk
+    const setProfileImage = useCallback(
+        async (file: File) => {
+            if (!clerkUser) {
+                throw new Error('No authenticated user')
+            }
+
+            try {
+                await clerkUser.setProfileImage({ file })
+            } catch (err) {
+                console.error('Error updating profile image:', err)
+                throw err
+            }
+        },
+        [clerkUser]
+    )
+
     return {
         user,
+        imageUrl: clerkUser?.imageUrl || null,
         isLoading: !isClerkLoaded || isLoading,
         error,
         needsProfileSetup,
         createProfile,
         updateProfile,
+        setProfileImage,
     }
 }
 
